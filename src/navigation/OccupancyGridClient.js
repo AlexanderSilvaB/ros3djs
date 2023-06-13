@@ -1,5 +1,8 @@
 /**
- * @author Russell Toris - rctoris@wpi.edu
+ * @Author: Russell Toris - rctoris@wpi.edu
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 15:13:54
  */
 
 /**
@@ -34,6 +37,8 @@ ROS3D.OccupancyGridClient = function(options) {
   this.offsetPose = options.offsetPose || new ROSLIB.Pose();
   this.color = options.color || {r:255,g:255,b:255};
   this.opacity = options.opacity || 1.0;
+  this.colorPallete = options.colorPallete || 'raw';
+  this.colorFn = options.colorFn || null;
 
   // current grid that is displayed
   this.currentGrid = null;
@@ -82,7 +87,9 @@ ROS3D.OccupancyGridClient.prototype.processMessage = function(message){
   var newGrid = new ROS3D.OccupancyGrid({
     message : message,
     color : this.color,
-    opacity : this.opacity
+    opacity : this.opacity,
+    colorFn: this.colorFn,
+    colorPallete: this.colorPallete,
   });
 
   // check if we care about the scene

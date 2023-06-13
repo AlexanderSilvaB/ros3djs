@@ -38033,7 +38033,9 @@ Object.assign( Font.prototype, {
 			if ( ! glyph ) { return; }
 
 			var path = new ShapePath();
-			var x, y, cpx, cpy, cpx1, cpy1, cpx2, cpy2;
+
+			var pts = [];
+			var x, y, cpx, cpy, cpx1, cpy1, cpx2, cpy2, laste;
 
 			if ( glyph.o ) {
 
@@ -38072,6 +38074,17 @@ Object.assign( Font.prototype, {
 
 							path.quadraticCurveTo( cpx1, cpy1, cpx, cpy );
 
+							laste = pts[ pts.length - 1 ];
+
+							if ( laste ) {
+
+								laste.x;
+								laste.y;
+
+								
+
+							}
+
 							break;
 
 						case 'b': // bezierCurveTo
@@ -38084,6 +38097,17 @@ Object.assign( Font.prototype, {
 							cpy2 = outline[ i ++ ] * scale + offsetY;
 
 							path.bezierCurveTo( cpx1, cpy1, cpx2, cpy2, cpx, cpy );
+
+							laste = pts[ pts.length - 1 ];
+
+							if ( laste ) {
+
+								laste.x;
+								laste.y;
+
+								
+
+							}
 
 							break;
 
@@ -53324,7 +53348,7 @@ var eventemitter2 = {exports: {}};
 	    var obj = {};
 	    var key;
 	    var len = keys.length;
-	    var valuesCount = values ? value.length : 0;
+	    var valuesCount = values ? values.length : 0;
 	    for (var i = 0; i < len; i++) {
 	      key = keys[i];
 	      obj[key] = i < valuesCount ? values[i] : undefined$1;
@@ -55606,6 +55630,12 @@ var Axes = /*@__PURE__*/(function (superclass) {
 }(THREE.Object3D));
 
 /**
+ * @Author: Alexander Silva Barbosa
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 14:12:33
+ */
+/**
  * @author Russell Toris - rctoris@wpi.edu
  */
 
@@ -55614,6 +55644,7 @@ var Grid = /*@__PURE__*/(function (superclass) {
     options = options || {};
     var num_cells = options.num_cells || 10;
     var color = options.color || '#cccccc';
+    var alpha = options.alpha || 0.5;
     var lineWidth = options.lineWidth || 1;
     var cellSize = options.cellSize || 1;
 
@@ -55621,7 +55652,9 @@ var Grid = /*@__PURE__*/(function (superclass) {
 
     var material = new THREE.LineBasicMaterial({
       color: color,
-      linewidth: lineWidth
+      linewidth: lineWidth,
+      transparent: true,
+      opacity: alpha,
     });
 
     for (var i = 0; i <= num_cells; ++i) {
@@ -55650,7 +55683,10 @@ var Grid = /*@__PURE__*/(function (superclass) {
 }(THREE.Object3D));
 
 /**
- * @author Russell Toris - rctoris@wpi.edu
+ * @Author: Russell Toris - rctoris@wpi.edu
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 15:26:01
  */
 
 var OccupancyGrid = /*@__PURE__*/(function (superclass) {
@@ -55659,6 +55695,8 @@ var OccupancyGrid = /*@__PURE__*/(function (superclass) {
     var message = options.message;
     var opacity = options.opacity || 1.0;
     var color = options.color || {r:255,g:255,b:255,a:255};
+    var colorFn = options.colorFn || null;
+    var colorPallete = options.colorPallete || 'raw';
 
     // create the geometry
     var info = message.info;
@@ -55706,6 +55744,13 @@ var OccupancyGrid = /*@__PURE__*/(function (superclass) {
     this.color = color;
     this.material = material;
     this.texture = texture;
+    this.colorFn = colorFn;
+    this.colorPallete = colorPallete;
+
+    this.palletes = this.makeColorPalletes();
+
+    if(this.colorPallete in this.palletes == false)
+      { this.colorPallete = 'raw'; }
 
     for ( var row = 0; row < height; row++) {
       for ( var col = 0; col < width; col++) {
@@ -55715,7 +55760,6 @@ var OccupancyGrid = /*@__PURE__*/(function (superclass) {
         var mapI = col + (invRow * width);
         // determine the value
         var val = this.getValue(mapI, invRow, col, data);
-
         // determine the color
         var color = this.getColor(mapI, invRow, col, val);
 
@@ -55759,19 +55803,129 @@ var OccupancyGrid = /*@__PURE__*/(function (superclass) {
    * @returns r,g,b,a array of values from 0 to 255 representing the color values for each channel
    */
   OccupancyGrid.prototype.getColor = function getColor (index, row, col, value) {
+
+    if(this.colorFn)
+      { return this.colorFn(value, index, row, col); }
+
+    var i = value * 4;
     return [
-      (value * this.color.r) / 255,
-      (value * this.color.g) / 255,
-      (value * this.color.b) / 255,
-      255
+      this.palletes[this.colorPallete][i],
+      this.palletes[this.colorPallete][i + 1],
+      this.palletes[this.colorPallete][i + 2],
+      this.palletes[this.colorPallete][i + 3]
     ];
+  };
+  OccupancyGrid.prototype._getMapPallete = function _getMapPallete (){
+    var pallete = Array(256*4);
+    var index = 0;
+    // Standard gray map palette values
+    for( var i = 0; i <= 100; i++ ){
+      var v = 255 - (255 * i) / 100;
+      pallete[index++] = v;
+      pallete[index++] = v;
+      pallete[index++] = v;
+      pallete[index++] = 255;
+    }
+    // illegal positive values in green
+    for( var i$1 = 101; i$1 <= 127; i$1++ ){
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+    }
+    // illegal negative (char) values in shades of red/yellow
+    for( var i$2 = 128; i$2 <= 254; i$2++ ){
+      var v$1 = ( 255 * ( i$2-128 )) / ( 254-128 ) ;
+      pallete[index++] = 255;
+      pallete[index++] = v$1;
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+    }
+    pallete[index++] = 0x70;
+    pallete[index++] = 0x89;
+    pallete[index++] = 0x86;
+    pallete[index++] = 255;
+    return pallete;
+  };
+  OccupancyGrid.prototype._getRawPallete = function _getRawPallete (){
+    var pallete = Array(256*4);
+    var index = 0;
+    // Standard gray map palette values
+    for( var i = 0; i <= 256; i++ ){
+      pallete[index++] = i;
+      pallete[index++] = i;
+      pallete[index++] = i;
+      pallete[index++] = 255;
+    }
+    return pallete;
+  };
+  OccupancyGrid.prototype._getCostmapPallete = function _getCostmapPallete (){
+    var pallete = Array(256*4);
+    var index = 0;
+
+    // zero values have alpha=0
+    pallete[index++] = 0;
+    pallete[index++] = 0;
+    pallete[index++] = 0;
+    pallete[index++] = 0;
+
+    // Blue to red spectrum for most normal cost values
+    for( var i = 1; i <= 98; i++ ){
+      var v = (255 * i) / 100;
+      pallete[index++] = v;
+      pallete[index++] = 0;
+      pallete[index++] = 255 - v;
+      pallete[index++] = 255;
+    }
+    // inscribed obstacle values (99) in cyan
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+    pallete[index++] = 255;
+    pallete[index++] = 255;
+
+    // lethal obstacle values (100) in yellow
+    pallete[index++] = 255;
+    pallete[index++] = 255;
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+
+    // illegal positive values in green
+    for( var i$1 = 101; i$1 <= 127; i$1++ ){
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+    }
+    // illegal negative (char) values in shades of red/yellow
+    for( var i$2 = 128; i$2 <= 254; i$2++ ){
+      var v$1 = ( 255 * ( i$2-128 )) / ( 254-128 ) ;
+      pallete[index++] = 255;
+      pallete[index++] = v$1;
+      pallete[index++] = 0;
+      pallete[index++] = 255;
+    }
+    pallete[index++] = 0x70;
+    pallete[index++] = 0x89;
+    pallete[index++] = 0x86;
+    pallete[index++] = 255;
+    return pallete;
+  };
+  OccupancyGrid.prototype.makeColorPalletes = function makeColorPalletes (){
+    return {
+      map: this._getMapPallete(),
+      raw: this._getRawPallete(),
+      costmap: this._getCostmapPallete(),
+    }
   };
 
   return OccupancyGrid;
 }(THREE.Mesh));
 
 /**
- * @author Russell Toris - rctoris@wpi.edu
+ * @Author: Russell Toris - rctoris@wpi.edu
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 15:13:54
  */
 
 var OccupancyGridClient = /*@__PURE__*/(function (EventEmitter2) {
@@ -55787,6 +55941,8 @@ var OccupancyGridClient = /*@__PURE__*/(function (EventEmitter2) {
     this.offsetPose = options.offsetPose || new ROSLIB__namespace.Pose();
     this.color = options.color || {r:255,g:255,b:255};
     this.opacity = options.opacity || 1.0;
+    this.colorPallete = options.colorPallete || 'raw';
+    this.colorFn = options.colorFn || null;
 
     // current grid that is displayed
     this.currentGrid = null;
@@ -55835,7 +55991,9 @@ var OccupancyGridClient = /*@__PURE__*/(function (EventEmitter2) {
     var newGrid = new OccupancyGrid({
       message : message,
       color : this.color,
-      opacity : this.opacity
+      opacity : this.opacity,
+      colorFn: this.colorFn,
+      colorPallete: this.colorPallete,
     });
 
     // check if we care about the scene

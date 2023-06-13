@@ -1,4 +1,10 @@
 /**
+ * @Author: Alexander Silva Barbosa
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 14:12:33
+ */
+/**
  * @author Russell Toris - rctoris@wpi.edu
  */
 
@@ -17,6 +23,7 @@ ROS3D.Grid = function(options) {
   options = options || {};
   var num_cells = options.num_cells || 10;
   var color = options.color || '#cccccc';
+  var alpha = options.alpha || 0.5;
   var lineWidth = options.lineWidth || 1;
   var cellSize = options.cellSize || 1;
 
@@ -24,7 +31,9 @@ ROS3D.Grid = function(options) {
 
   var material = new THREE.LineBasicMaterial({
     color: color,
-    linewidth: lineWidth
+    linewidth: lineWidth,
+    transparent: true,
+    opacity: alpha,
   });
 
   for (var i = 0; i <= num_cells; ++i) {

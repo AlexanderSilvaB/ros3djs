@@ -38025,7 +38025,9 @@ var ROS3D = (function (exports, ROSLIB) {
 				if ( ! glyph ) return;
 
 				var path = new ShapePath();
-				var x, y, cpx, cpy, cpx1, cpy1, cpx2, cpy2;
+
+				var pts = [];
+				var x, y, cpx, cpy, cpx1, cpy1, cpx2, cpy2, laste;
 
 				if ( glyph.o ) {
 
@@ -38064,6 +38066,17 @@ var ROS3D = (function (exports, ROSLIB) {
 
 								path.quadraticCurveTo( cpx1, cpy1, cpx, cpy );
 
+								laste = pts[ pts.length - 1 ];
+
+								if ( laste ) {
+
+									laste.x;
+									laste.y;
+
+									
+
+								}
+
 								break;
 
 							case 'b': // bezierCurveTo
@@ -38076,6 +38089,17 @@ var ROS3D = (function (exports, ROSLIB) {
 								cpy2 = outline[ i ++ ] * scale + offsetY;
 
 								path.bezierCurveTo( cpx1, cpy1, cpx2, cpy2, cpx, cpy );
+
+								laste = pts[ pts.length - 1 ];
+
+								if ( laste ) {
+
+									laste.x;
+									laste.y;
+
+									
+
+								}
 
 								break;
 
@@ -53390,7 +53414,7 @@ var ROS3D = (function (exports, ROSLIB) {
 		    var obj = {};
 		    var key;
 		    var len = keys.length;
-		    var valuesCount = values ? value.length : 0;
+		    var valuesCount = values ? values.length : 0;
 		    for (var i = 0; i < len; i++) {
 		      key = keys[i];
 		      obj[key] = i < valuesCount ? values[i] : undefined$1;
@@ -55793,6 +55817,12 @@ var ROS3D = (function (exports, ROSLIB) {
 	}
 
 	/**
+	 * @Author: Alexander Silva Barbosa
+	 * @Date:   2023-06-05 12:33:08
+	 * @Last Modified by:   Alexander Silva Barbosa
+	 * @Last Modified time: 2023-06-05 14:12:33
+	 */
+	/**
 	 * @author Russell Toris - rctoris@wpi.edu
 	 */
 
@@ -55813,6 +55843,7 @@ var ROS3D = (function (exports, ROSLIB) {
 	    options = options || {};
 	    var num_cells = options.num_cells || 10;
 	    var color = options.color || '#cccccc';
+	    var alpha = options.alpha || 0.5;
 	    var lineWidth = options.lineWidth || 1;
 	    var cellSize = options.cellSize || 1;
 
@@ -55820,7 +55851,9 @@ var ROS3D = (function (exports, ROSLIB) {
 
 	    var material = new THREE.LineBasicMaterial({
 	      color: color,
-	      linewidth: lineWidth
+	      linewidth: lineWidth,
+	      transparent: true,
+	      opacity: alpha,
 	    });
 
 	    for (var i = 0; i <= num_cells; ++i) {
@@ -55843,7 +55876,10 @@ var ROS3D = (function (exports, ROSLIB) {
 	}
 
 	/**
-	 * @author Russell Toris - rctoris@wpi.edu
+	 * @Author: Russell Toris - rctoris@wpi.edu
+	 * @Date:   2023-06-05 12:33:08
+	 * @Last Modified by:   Alexander Silva Barbosa
+	 * @Last Modified time: 2023-06-05 15:26:01
 	 */
 
 	class OccupancyGrid extends THREE.Mesh {
@@ -55863,6 +55899,8 @@ var ROS3D = (function (exports, ROSLIB) {
 	    var message = options.message;
 	    var opacity = options.opacity || 1.0;
 	    var color = options.color || {r:255,g:255,b:255,a:255};
+	    var colorFn = options.colorFn || null;
+	    var colorPallete = options.colorPallete || 'raw';
 
 	    // create the geometry
 	    var info = message.info;
@@ -55910,6 +55948,13 @@ var ROS3D = (function (exports, ROSLIB) {
 	    this.color = color;
 	    this.material = material;
 	    this.texture = texture;
+	    this.colorFn = colorFn;
+	    this.colorPallete = colorPallete;
+
+	    this.palletes = this.makeColorPalletes();
+
+	    if(this.colorPallete in this.palletes == false)
+	      this.colorPallete = 'raw';
 
 	    for ( var row = 0; row < height; row++) {
 	      for ( var col = 0; col < width; col++) {
@@ -55919,7 +55964,6 @@ var ROS3D = (function (exports, ROSLIB) {
 	        var mapI = col + (invRow * width);
 	        // determine the value
 	        var val = this.getValue(mapI, invRow, col, data);
-
 	        // determine the color
 	        var color = this.getColor(mapI, invRow, col, val);
 
@@ -55962,17 +56006,131 @@ var ROS3D = (function (exports, ROSLIB) {
 	   * @returns r,g,b,a array of values from 0 to 255 representing the color values for each channel
 	   */
 	  getColor(index, row, col, value) {
+
+	    if(this.colorFn)
+	      return this.colorFn(value, index, row, col);
+
+	    const i = value * 4;
 	    return [
-	      (value * this.color.r) / 255,
-	      (value * this.color.g) / 255,
-	      (value * this.color.b) / 255,
-	      255
+	      this.palletes[this.colorPallete][i],
+	      this.palletes[this.colorPallete][i + 1],
+	      this.palletes[this.colorPallete][i + 2],
+	      this.palletes[this.colorPallete][i + 3]
 	    ];
 	  };
+
+	  _getMapPallete(){
+	    let pallete = Array(256*4);
+	    let index = 0;
+	    // Standard gray map palette values
+	    for( let i = 0; i <= 100; i++ ){
+	      let v = 255 - (255 * i) / 100;
+	      pallete[index++] = v;
+	      pallete[index++] = v;
+	      pallete[index++] = v;
+	      pallete[index++] = 255;
+	    }
+	    // illegal positive values in green
+	    for( let i = 101; i <= 127; i++ ){
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	    }
+	    // illegal negative (char) values in shades of red/yellow
+	    for( let i = 128; i <= 254; i++ ){
+	      let v = ( 255 * ( i-128 )) / ( 254-128 ) ;
+	      pallete[index++] = 255;
+	      pallete[index++] = v;
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	    }
+	    pallete[index++] = 0x70;
+	    pallete[index++] = 0x89;
+	    pallete[index++] = 0x86;
+	    pallete[index++] = 255;
+	    return pallete;
+	  };
+
+	  _getRawPallete(){
+	    let pallete = Array(256*4);
+	    let index = 0;
+	    // Standard gray map palette values
+	    for( let i = 0; i <= 256; i++ ){
+	      pallete[index++] = i;
+	      pallete[index++] = i;
+	      pallete[index++] = i;
+	      pallete[index++] = 255;
+	    }
+	    return pallete;
+	  };
+
+	  _getCostmapPallete(){
+	    let pallete = Array(256*4);
+	    let index = 0;
+
+	    // zero values have alpha=0
+	    pallete[index++] = 0;
+	    pallete[index++] = 0;
+	    pallete[index++] = 0;
+	    pallete[index++] = 0;
+
+	    // Blue to red spectrum for most normal cost values
+	    for( let i = 1; i <= 98; i++ ){
+	      let v = (255 * i) / 100;
+	      pallete[index++] = v;
+	      pallete[index++] = 0;
+	      pallete[index++] = 255 - v;
+	      pallete[index++] = 255;
+	    }
+	    // inscribed obstacle values (99) in cyan
+	    pallete[index++] = 0;
+	    pallete[index++] = 255;
+	    pallete[index++] = 255;
+	    pallete[index++] = 255;
+
+	    // lethal obstacle values (100) in yellow
+	    pallete[index++] = 255;
+	    pallete[index++] = 255;
+	    pallete[index++] = 0;
+	    pallete[index++] = 255;
+
+	    // illegal positive values in green
+	    for( let i = 101; i <= 127; i++ ){
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	    }
+	    // illegal negative (char) values in shades of red/yellow
+	    for( let i = 128; i <= 254; i++ ){
+	      let v = ( 255 * ( i-128 )) / ( 254-128 ) ;
+	      pallete[index++] = 255;
+	      pallete[index++] = v;
+	      pallete[index++] = 0;
+	      pallete[index++] = 255;
+	    }
+	    pallete[index++] = 0x70;
+	    pallete[index++] = 0x89;
+	    pallete[index++] = 0x86;
+	    pallete[index++] = 255;
+	    return pallete;
+	  };
+
+	  makeColorPalletes(){
+	    return {
+	      map: this._getMapPallete(),
+	      raw: this._getRawPallete(),
+	      costmap: this._getCostmapPallete(),
+	    }
+	  }
 	}
 
 	/**
-	 * @author Russell Toris - rctoris@wpi.edu
+	 * @Author: Russell Toris - rctoris@wpi.edu
+	 * @Date:   2023-06-05 12:33:08
+	 * @Last Modified by:   Alexander Silva Barbosa
+	 * @Last Modified time: 2023-06-05 15:13:54
 	 */
 
 	class OccupancyGridClient extends EventEmitter2 {
@@ -56009,6 +56167,8 @@ var ROS3D = (function (exports, ROSLIB) {
 	    this.offsetPose = options.offsetPose || new ROSLIB__namespace.Pose();
 	    this.color = options.color || {r:255,g:255,b:255};
 	    this.opacity = options.opacity || 1.0;
+	    this.colorPallete = options.colorPallete || 'raw';
+	    this.colorFn = options.colorFn || null;
 
 	    // current grid that is displayed
 	    this.currentGrid = null;
@@ -56056,7 +56216,9 @@ var ROS3D = (function (exports, ROSLIB) {
 	    var newGrid = new OccupancyGrid({
 	      message : message,
 	      color : this.color,
-	      opacity : this.opacity
+	      opacity : this.opacity,
+	      colorFn: this.colorFn,
+	      colorPallete: this.colorPallete,
 	    });
 
 	    // check if we care about the scene

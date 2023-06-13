@@ -1,5 +1,8 @@
 /**
- * @author Russell Toris - rctoris@wpi.edu
+ * @Author: Russell Toris - rctoris@wpi.edu
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-05 15:26:01
  */
 
 /**
@@ -17,6 +20,8 @@ ROS3D.OccupancyGrid = function(options) {
   var message = options.message;
   var opacity = options.opacity || 1.0;
   var color = options.color || {r:255,g:255,b:255,a:255};
+  var colorFn = options.colorFn || null;
+  var colorPallete = options.colorPallete || 'raw';
 
   // create the geometry
   var info = message.info;
@@ -64,6 +69,13 @@ ROS3D.OccupancyGrid = function(options) {
   this.color = color;
   this.material = material;
   this.texture = texture;
+  this.colorFn = colorFn;
+  this.colorPallete = colorPallete;
+
+  this.palletes = this.makeColorPalletes();
+
+  if(this.colorPallete in this.palletes == false)
+    this.colorPallete = 'raw';
 
   for ( var row = 0; row < height; row++) {
     for ( var col = 0; col < width; col++) {
@@ -73,7 +85,6 @@ ROS3D.OccupancyGrid = function(options) {
       var mapI = col + (invRow * width);
       // determine the value
       var val = this.getValue(mapI, invRow, col, data);
-
       // determine the color
       var color = this.getColor(mapI, invRow, col, val);
 
@@ -116,12 +127,123 @@ ROS3D.OccupancyGrid.prototype.getValue = function(index, row, col, data) {
  * @returns r,g,b,a array of values from 0 to 255 representing the color values for each channel
  */
 ROS3D.OccupancyGrid.prototype.getColor = function(index, row, col, value) {
+
+  if(this.colorFn)
+    return this.colorFn(value, index, row, col);
+
+  const i = value * 4;
   return [
-    (value * this.color.r) / 255,
-    (value * this.color.g) / 255,
-    (value * this.color.b) / 255,
-    255
+    this.palletes[this.colorPallete][i],
+    this.palletes[this.colorPallete][i + 1],
+    this.palletes[this.colorPallete][i + 2],
+    this.palletes[this.colorPallete][i + 3]
   ];
 };
+
+ROS3D.OccupancyGrid.prototype._getMapPallete = function(){
+  let pallete = Array(256*4);
+  let index = 0;
+  // Standard gray map palette values
+  for( let i = 0; i <= 100; i++ ){
+    let v = 255 - (255 * i) / 100;
+    pallete[index++] = v;
+    pallete[index++] = v;
+    pallete[index++] = v;
+    pallete[index++] = 255;
+  }
+  // illegal positive values in green
+  for( let i = 101; i <= 127; i++ ){
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+  }
+  // illegal negative (char) values in shades of red/yellow
+  for( let i = 128; i <= 254; i++ ){
+    let v = ( 255 * ( i-128 )) / ( 254-128 ) ;
+    pallete[index++] = 255;
+    pallete[index++] = v;
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+  }
+  pallete[index++] = 0x70;
+  pallete[index++] = 0x89;
+  pallete[index++] = 0x86;
+  pallete[index++] = 255;
+  return pallete;
+};
+
+ROS3D.OccupancyGrid.prototype._getRawPallete = function(){
+  let pallete = Array(256*4);
+  let index = 0;
+  // Standard gray map palette values
+  for( let i = 0; i <= 256; i++ ){
+    pallete[index++] = i;
+    pallete[index++] = i;
+    pallete[index++] = i;
+    pallete[index++] = 255;
+  }
+  return pallete;
+};
+
+ROS3D.OccupancyGrid.prototype._getCostmapPallete = function(){
+  let pallete = Array(256*4);
+  let index = 0;
+
+  // zero values have alpha=0
+  pallete[index++] = 0;
+  pallete[index++] = 0;
+  pallete[index++] = 0;
+  pallete[index++] = 0;
+
+  // Blue to red spectrum for most normal cost values
+  for( let i = 1; i <= 98; i++ ){
+    let v = (255 * i) / 100;
+    pallete[index++] = v;
+    pallete[index++] = 0;
+    pallete[index++] = 255 - v;
+    pallete[index++] = 255;
+  }
+  // inscribed obstacle values (99) in cyan
+  pallete[index++] = 0;
+  pallete[index++] = 255;
+  pallete[index++] = 255;
+  pallete[index++] = 255;
+
+  // lethal obstacle values (100) in yellow
+  pallete[index++] = 255;
+  pallete[index++] = 255;
+  pallete[index++] = 0;
+  pallete[index++] = 255;
+
+  // illegal positive values in green
+  for( let i = 101; i <= 127; i++ ){
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+  }
+  // illegal negative (char) values in shades of red/yellow
+  for( let i = 128; i <= 254; i++ ){
+    let v = ( 255 * ( i-128 )) / ( 254-128 ) ;
+    pallete[index++] = 255;
+    pallete[index++] = v;
+    pallete[index++] = 0;
+    pallete[index++] = 255;
+  }
+  pallete[index++] = 0x70;
+  pallete[index++] = 0x89;
+  pallete[index++] = 0x86;
+  pallete[index++] = 255;
+  return pallete;
+};
+
+ROS3D.OccupancyGrid.prototype.makeColorPalletes = function(){
+  return {
+    map: this._getMapPallete(),
+    raw: this._getRawPallete(),
+    costmap: this._getCostmapPallete(),
+  }
+}
 
 ROS3D.OccupancyGrid.prototype.__proto__ = THREE.Mesh.prototype;
