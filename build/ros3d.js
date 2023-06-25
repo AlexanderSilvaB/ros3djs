@@ -58541,6 +58541,12 @@ var ROS3D = (function (exports, ROSLIB) {
 	}
 
 	/**
+	 * @Author: Alexander Silva Barbosa
+	 * @Date:   2023-06-05 12:33:08
+	 * @Last Modified by:   Alexander Silva Barbosa
+	 * @Last Modified time: 2023-06-25 19:57:05
+	 */
+	/**
 	 * @author David Gossow - dgossow@willowgarage.com
 	 */
 
@@ -59283,6 +59289,12 @@ var ROS3D = (function (exports, ROSLIB) {
 	}
 
 	/**
+	 * @Author: Alexander Silva Barbosa
+	 * @Date:   2023-06-05 12:33:08
+	 * @Last Modified by:   Alexander Silva Barbosa
+	 * @Last Modified time: 2023-06-25 19:38:38
+	 */
+	/**
 	 * @author David Gossow - dgossow@willowgarage.com
 	 * @author Russell Toris - rctoris@wpi.edu
 	 * @author Jihoon Lee - jihoonlee.in@gmail.com
@@ -59375,9 +59387,11 @@ var ROS3D = (function (exports, ROSLIB) {
 	      fallbackTarget : this.cameraControls
 	    });
 
+	    this.mouseHandler = mouseHandler;
+
 	    // highlights the receiver of mouse events
 	    this.highlighter = new Highlighter({
-	      mouseHandler : mouseHandler
+	      mouseHandler : this.mouseHandler
 	    });
 
 	    this.stopped = true;

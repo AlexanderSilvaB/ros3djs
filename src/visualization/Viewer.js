@@ -1,4 +1,10 @@
 /**
+ * @Author: Alexander Silva Barbosa
+ * @Date:   2023-06-05 12:33:08
+ * @Last Modified by:   Alexander Silva Barbosa
+ * @Last Modified time: 2023-06-25 19:38:38
+ */
+/**
  * @author David Gossow - dgossow@willowgarage.com
  * @author Russell Toris - rctoris@wpi.edu
  * @author Jihoon Lee - jihoonlee.in@gmail.com
@@ -89,9 +95,11 @@ ROS3D.Viewer = function(options) {
     fallbackTarget : this.cameraControls
   });
 
+  this.mouseHandler = mouseHandler;
+
   // highlights the receiver of mouse events
   this.highlighter = new ROS3D.Highlighter({
-    mouseHandler : mouseHandler
+    mouseHandler : this.mouseHandler
   });
 
   this.stopped = true;
